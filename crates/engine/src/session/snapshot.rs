@@ -100,6 +100,7 @@ impl Session {
             ime_text_join,
             join_anchor,
             autocap: _,
+            doc_ai: _,
             rev: _,
             protect_facts: _,
             cache: _,

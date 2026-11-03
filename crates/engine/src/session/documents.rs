@@ -61,6 +61,7 @@ pub struct DocState {
     pub(super) ime_text_join: Option<Selection>,
     pub(super) join_anchor: bool,
     pub(super) autocap: Option<crate::cmd::tools::AutoCap>,
+    pub(super) doc_ai: crate::cmd::ai::AiState,
     pub(super) rev: u64,
     pub(super) document_id: u64,
     pub(super) untitled: u32,
@@ -115,6 +116,7 @@ impl DocState {
             ime_text_join: None,
             join_anchor: false,
             autocap: None,
+            doc_ai: Default::default(),
             rev: 1,
             document_id: next_document_id(),
             untitled,
@@ -215,6 +217,7 @@ impl Session {
             ime_text_join: _,
             join_anchor: _,
             autocap: _,
+            doc_ai: _,
             rev: _,
             document_id: _,
             untitled: _,
@@ -304,6 +307,7 @@ impl Session {
             ime_text_join,
             join_anchor,
             autocap,
+            doc_ai,
             rev,
             document_id,
             untitled,
@@ -351,6 +355,7 @@ impl Session {
         swap(&mut self.ime_text_join, ime_text_join);
         swap(&mut self.join_anchor, join_anchor);
         swap(&mut self.autocap, autocap);
+        swap(&mut self.doc_ai, doc_ai);
         swap(&mut self.rev, rev);
         swap(&mut self.document_id, document_id);
         swap(&mut self.untitled, untitled);

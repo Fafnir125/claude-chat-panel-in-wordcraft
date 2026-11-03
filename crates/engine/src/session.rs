@@ -117,6 +117,8 @@ pub struct Session {
     join_anchor: bool,
     /// The newest automatic capitalisation, for Word's "Automatically add words to list" (#1857).
     pub(crate) autocap: Option<crate::cmd::tools::AutoCap>,
+    /// The assistant's proposal and the ranges its last apply wrote (`ai.*`).
+    pub doc_ai: crate::cmd::ai::AiState,
     rev: u64,
     /// Which document this is, unique in the process: changes when [`Session::set_document`]
     /// replaces it (an open into an untouched blank document, recover), never on an edit or when
