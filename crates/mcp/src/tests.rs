@@ -367,3 +367,22 @@ fn render_page_rejects_a_page_number_that_does_not_fit() {
     let r = call(&mut s, 31, "tools/call", json!({"name": "render_page", "arguments": {"page": 1, "scale": 0.5}}));
     assert_eq!(r["result"]["isError"], false, "page 1 still renders: {r}");
 }
+
+#[test]
+fn assistant_reads_proposes_and_the_user_applies() {
+    let mut s = Server::new(Box::new(Headless::default()));
+    tool(&mut s, "new_document", json!({}));
+    tool(&mut s, "type_text", json!({"text": "Der Hund schläft."}));
+    let r = tool(&mut s, "read_document", json!({}));
+    assert_eq!(r["paragraphs"][0]["text"], "Der Hund schläft.");
+    let p = tool(&mut s, "propose_edits", json!({"edits": [{"find": "Hund", "text": "Kater"}], "summary": "Tier tauschen"}));
+    assert_eq!(p["proposed"], 1);
+    let r = tool(&mut s, "read_document", json!({}));
+    assert_eq!(r["paragraphs"][0]["text"], "Der Hund schläft.", "a proposal changes nothing");
+    tool(&mut s, "execute", json!({"command": "ai.apply"}));
+    let r = tool(&mut s, "read_document", json!({}));
+    assert_eq!(r["paragraphs"][0]["text"], "Der Kater schläft.");
+    tool(&mut s, "execute", json!({"command": "edit.undo"}));
+    let r = tool(&mut s, "read_document", json!({}));
+    assert_eq!(r["paragraphs"][0]["text"], "Der Hund schläft.");
+}

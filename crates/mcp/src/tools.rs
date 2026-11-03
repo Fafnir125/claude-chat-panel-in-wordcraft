@@ -90,6 +90,23 @@ pub fn tool_definitions() -> Value {
             false
         ),
         tool(
+            "read_document",
+            "Read the document",
+            "The body's paragraphs (index, start position, style, text), the document revision and the user's selection with its text (ai.read). `from`/`to` limit the paragraph indexes.",
+            with_doc(obj(json!({"from": n("First paragraph index"), "to": n("Last paragraph index")}), &[])),
+            true
+        ),
+        tool(
+            "propose_edits",
+            "Propose edits",
+            "Propose changes for the user to review (ai.propose). Nothing changes until they choose Apply, as one undo step. Each edit replaces text: {find, text, occurrence?} (exact text within one paragraph) or {anchor, focus, text} (positions from read_document). Empty `text` deletes; `\\n` in `text` starts a new paragraph. A new proposal replaces the previous one.",
+            with_doc(obj(
+                json!({"edits": {"type": "array", "items": {"type": "object", "properties": {"find": {"type": "string"}, "occurrence": {"type": "number"}, "anchor": {"type": "object"}, "focus": {"type": "object"}, "text": {"type": "string"}}, "required": ["text"]}}, "summary": s("One sentence for the user on what the edits do")}),
+                &["edits"]
+            )),
+            false
+        ),
+        tool(
             "new_document",
             "New document",
             "Start a document: blank, sample, letter, resume or report. It opens beside the documents already open and becomes the active one; the reply's `id` addresses it (`doc`).",
@@ -233,6 +250,19 @@ pub fn call_tool(b: &mut dyn Backend, name: &str, a: &Value) -> ToolResult {
                 Ok(v) => ToolResult::json(&v),
                 Err(e) => ToolResult::error(e),
             }
+        }
+        "read_document" => {
+            let mut p = json!({});
+            for k in ["from", "to"] {
+                if let Some(v) = a.get(k) {
+                    p[k] = v.clone();
+                }
+            }
+            wrap(exec(b, "ai.read", p, doc))
+        }
+        "propose_edits" => {
+            let p = json!({"edits": a.get("edits").cloned().unwrap_or(Value::Null), "summary": a.get("summary").cloned().unwrap_or(json!(""))});
+            wrap(exec(b, "ai.propose", p, doc))
         }
         "execute" => match st("command") {
             Some(c) => wrap(exec(b, c, a.get("params").cloned().unwrap_or(json!({})), doc)),
