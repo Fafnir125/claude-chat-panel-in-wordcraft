@@ -134,6 +134,15 @@ impl eframe::App for App {
 /// removed first, as `on_exit` does, because a fallback [`std::process::exit`]
 /// skips `on_exit`. A second close while a quit is already scheduled is ignored.
 #[cfg(target_os = "macos")]
+/// A control key file removed when the app (and with it the chat's on-demand channel) goes.
+struct RemoveOnDrop(control_server::KeyFile);
+
+impl Drop for RemoveOnDrop {
+    fn drop(&mut self) {
+        self.0.remove();
+    }
+}
+
 fn schedule_macos_terminate(app: &mut WordApp, key_file: Option<&control_server::KeyFile>) {
     use std::sync::atomic::{AtomicBool, Ordering};
     if app.printing.busy() {
@@ -521,6 +530,18 @@ fn main() -> eframe::Result {
             {
                 app = app.with_control(rx);
                 key_file = file;
+                app.chat.port = Some(port);
+            }
+            if app.chat.port.is_none() {
+                // The Claude chat needs a control port for its MCP bridge: start one on a free
+                // port the first time the user sends a message.
+                let mut keys: Vec<RemoveOnDrop> = Vec::new();
+                app.chat.connect = Some(Box::new(move |ctx: &egui::Context| {
+                    let port = std::net::TcpListener::bind(("127.0.0.1", 0)).ok()?.local_addr().ok()?.port();
+                    let (rx, file) = control_server::start(port, ctx.clone(), wordcraft_control_key::settings_dir().as_deref())?;
+                    keys.extend(file.map(RemoveOnDrop));
+                    Some((rx, port))
+                }));
             }
             // Nothing to open (no files, no sample, no control channel driving the editor): start
             // on File › Home, as Word does (#766), unless the Start screen option is off. Files

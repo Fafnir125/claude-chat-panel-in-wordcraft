@@ -42,6 +42,19 @@ open another one and make it active; later commands and the saves work on the ac
 `view.switchWindows={"id": n}` makes one active. A failing command stops the run with `command N (id): …` and exit
 status 1, and nothing is saved. Every output is checked (known extension, folder exists) before the first is written. Paths inside command params (a picture to insert, say) are relative to the working folder, not the script's. Scripts are capped at 4 MiB.
 
+## Claude chat panel
+
+The app has a chat button in the window's bottom-right corner (Ctrl+Alt+K / ⌘⌥K, `ui.claude.toggle`).
+It runs Claude Code on this machine (`claude -p --output-format stream-json`, the user's own
+sign-in, no API key) with this server bridged to the window's control port
+(`wordcraft-cli mcp --connect`). Claude may use only `read_document` and `propose_edits`:
+proposals show struck through in the document and as a card in the chat, and the user applies
+(`ai.apply`, one undo step, the new text fades in) or discards (`ai.discard`) them. A selection
+made while the panel is open is sent as the message's reference. Without `--control` the app
+starts a control channel on a free port the first time a message is sent. `WORDCRAFT_CLAUDE`
+and `WORDCRAFT_CLI` override where `claude` and `wordcraft-cli` are found. Scripts can use
+`ui.claude.send {text}`, `ui.claude.state` and `ui.claude.newChat`.
+
 ## Tracked changes by an agent
 
 Tracked changes and comments are recorded under the session's user name ("WordCraft User" by
@@ -161,6 +174,8 @@ test source in File › Options › Language and on the bar's Install.
 | `select_text` | select the n-th occurrence of some text |
 | `get_text` / `inspect_document` | read the document back (verify without screenshots) |
 | `render_page` | a page as PNG |
+| `read_document` | the body's paragraphs (index, start, style, text), the revision and the selection with its text (`ai.read`) |
+| `propose_edits` | propose replacements (`{find, text}` or `{anchor, focus, text}`) for the user to review; nothing changes until `ai.apply` (one undo step), which refuses if the document changed since (`ai.propose`) |
 | `parity` | feature coverage |
 | `screenshot`, `click`, `key`, `ui_inspect` | app only (`--connect`) |
 

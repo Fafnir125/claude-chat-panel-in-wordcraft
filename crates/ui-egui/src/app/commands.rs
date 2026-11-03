@@ -499,6 +499,23 @@ impl WordApp {
     pub(crate) fn ui_command(&mut self, id: &str, p: &Value) -> Option<Result<Value, String>> {
         let s = |k: &str| p.get(k).and_then(Value::as_str);
         Some(Ok(match id {
+            "ui.claude.toggle" => {
+                self.chat.toggle();
+                json!({"open": self.chat.open})
+            }
+            "ui.claude.send" => {
+                self.chat.open = true;
+                self.chat.input = s("text").unwrap_or("").to_string();
+                if let Some(ctx) = self.ctx.clone() {
+                    crate::claude_chat::send(self, &ctx);
+                }
+                json!({"sent": self.chat.busy()})
+            }
+            "ui.claude.state" => crate::claude_chat::state(self),
+            "ui.claude.newChat" => {
+                self.chat.new_chat();
+                json!({"open": self.chat.open})
+            }
             "ui.checkForUpdates" | "help.checkForUpdates" => {
                 crate::updates_ui::check(self);
                 Value::Null

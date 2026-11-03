@@ -1434,6 +1434,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
         // Content controls: the frame of the one the caret is in (all of them in Design Mode).
         crate::content_controls::paint(app, &painter, &t, &layout, &rects, geo.scale);
         paint_read_aloud_highlight(app, &painter, &layout, &rects, &geo, &t);
+        crate::claude_chat::paint_doc(app, &painter, &layout, &rects, geo.scale, &t);
         // Caret.
         let focused = resp.has_focus() || app.canvas.focused;
         // After an automatic change the web's text agent starts afresh

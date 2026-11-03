@@ -104,6 +104,7 @@ impl WordApp {
         colors::show(self, ctx);
         zotero::show_alert(self, ctx);
         read_aloud::show(self, ctx);
+        crate::claude_chat::show(self, ctx);
         crate::keytips::show(self, ctx, ui);
         if moved(self) {
             return;

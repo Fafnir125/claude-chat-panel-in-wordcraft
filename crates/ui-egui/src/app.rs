@@ -104,6 +104,7 @@ impl WordApp {
             updates_rt: updates_ui::Runtime::default(),
             packs_rt: Default::default(),
             control_rx: None,
+            chat: Default::default(),
             shots: crate::control::Shots::default(),
             capture_epoch: 0,
             surface_geometry: None,
