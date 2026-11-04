@@ -229,6 +229,10 @@ impl From<Animations> for String {
     }
 }
 
+/// Claude orange and the ink drawn on it.
+const AI_COLOR: Color32 = Color32::from_rgb(0xD9, 0x77, 0x57);
+const AI_INK: Color32 = Color32::from_rgb(0x1F, 0x1E, 0x1D);
+
 /// Every colour the UI uses; widgets never hard-code colours.
 #[derive(Clone, Copy, Debug)]
 pub struct Tokens {
@@ -253,6 +257,13 @@ pub struct Tokens {
     pub accent_text: Color32,
     /// Text/icon colour drawn on top of `accent` (e.g. keytip badge letters).
     pub on_accent: Color32,
+    /// Claude's features (the chat panel and its marks in the document): Claude orange, with
+    /// dark ink on it (white on #d97757 is only 3.1:1) and a deeper orange for text.
+    pub ai_accent: Color32,
+    pub on_ai_accent: Color32,
+    pub ai_accent_text: Color32,
+    /// The mark on the orange chat button: white, as a graphic (3.1:1 meets 3:1).
+    pub ai_mark: Color32,
     pub input: Color32,
     pub input_border: Color32,
     pub group_label: Color32,
@@ -322,6 +333,10 @@ impl Tokens {
             nav: APP_COLOR,
             accent_text: APP_INK,
             on_accent: Color32::WHITE,
+            ai_accent: AI_COLOR,
+            on_ai_accent: AI_INK,
+            ai_accent_text: Color32::from_rgb(0xA8, 0x49, 0x2A),
+            ai_mark: Color32::WHITE,
             input: Color32::WHITE,
             input_border: Color32::from_rgb(0x8A, 0x8A, 0x8A),
             group_label: Color32::from_rgb(0x70, 0x70, 0x70),
@@ -388,6 +403,10 @@ impl Tokens {
             accent_text: Color32::from_rgb(0x9C, 0xB0, 0xF5),
             // Dark text on the light dark-theme accent: white on #7a93f0 is only 2.9:1 (#655).
             on_accent: Color32::from_rgb(0x11, 0x16, 0x2E),
+            ai_accent: AI_COLOR,
+            on_ai_accent: AI_INK,
+            ai_accent_text: Color32::from_rgb(0xE8, 0x97, 0x7A),
+            ai_mark: Color32::WHITE,
             input: Color32::from_rgb(0x1E, 0x1E, 0x1E),
             input_border: Color32::from_rgb(0x7A, 0x7A, 0x7A),
             group_label: Color32::from_rgb(0xA0, 0xA0, 0xA0),

@@ -303,11 +303,11 @@ pub fn show(app: &mut WordApp, ctx: &egui::Context) {
                 let w = egui::lerp(BUTTON..=width, t_open);
                 let (r, _) = ui.allocate_exact_size(vec2(w, BUTTON), Sense::hover());
                 ui.painter().rect(r, CornerRadius::same(24), tok.panel, Stroke::new(1.0, tok.border), egui::StrokeKind::Inside);
-                spark(ui.painter(), pos2(r.max.x - BUTTON / 2.0, r.center().y), 10.0, tok.accent.gamma_multiply(1.0 - t_open));
+                spark(ui.painter(), pos2(r.max.x - BUTTON / 2.0, r.center().y), 10.0, tok.ai_accent.gamma_multiply(1.0 - t_open));
                 ctx.request_repaint();
             } else {
                 ui.with_layout(Layout::top_down(Align::Min), |ui| {
-                    if !app.chat.messages.is_empty() {
+                    if !app.chat.messages.is_empty() || app.session.doc_ai.proposal.is_some() {
                         conversation(app, ui, &tok, width, area);
                         ui.add_space(8.0);
                     }
@@ -346,33 +346,31 @@ fn closed_button(app: &mut WordApp, ui: &mut egui::Ui, tok: &Tokens) {
     let (r, resp) = ui.allocate_exact_size(Vec2::splat(BUTTON), Sense::click());
     let resp = resp.on_hover_text(t("Chat with Claude (Ctrl+Alt+K)"));
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, t("Open Claude chat")));
-    let fill = if resp.is_pointer_button_down_on() { tok.accent.gamma_multiply(0.85) } else { tok.accent };
+    let fill = if resp.is_pointer_button_down_on() { tok.ai_accent.gamma_multiply(0.85) } else { tok.ai_accent };
     let p = ui.painter();
     p.circle_filled(r.center() + vec2(0.0, 1.5), BUTTON / 2.0, tok.page_shadow);
     p.circle_filled(r.center(), BUTTON / 2.0, fill);
-    spark(p, r.center(), 11.0, tok.on_accent);
+    spark(p, r.center(), 13.0, tok.ai_mark);
     if resp.has_focus() {
-        p.circle_stroke(r.center(), BUTTON / 2.0 + 3.0, Stroke::new(2.0, tok.accent));
+        p.circle_stroke(r.center(), BUTTON / 2.0 + 3.0, Stroke::new(2.0, tok.ai_accent));
     }
     if resp.clicked() {
         app.chat.toggle();
     }
 }
 
-/// An original mark drawn in code: a four-pointed spark.
+/// An original mark drawn in code: a burst of sixteen rounded rays around an open centre.
 fn spark(p: &egui::Painter, c: Pos2, r: f32, color: Color32) {
-    let w = r * 0.28;
-    let pts = vec![
-        c + vec2(0.0, -r),
-        c + vec2(w, -w),
-        c + vec2(r, 0.0),
-        c + vec2(w, w),
-        c + vec2(0.0, r),
-        c + vec2(-w, w),
-        c + vec2(-r, 0.0),
-        c + vec2(-w, -w),
-    ];
-    p.add(egui::Shape::convex_polygon(pts, color, Stroke::NONE));
+    let w = (r * 0.16).max(1.5);
+    let reach = r - w / 2.0;
+    for k in 0..16 {
+        let a = k as f32 * std::f32::consts::TAU / 16.0;
+        let d = vec2(a.cos(), a.sin());
+        let (a0, a1) = (c + d * (reach * 0.22), c + d * reach);
+        p.line_segment([a0, a1], Stroke::new(w, color));
+        p.circle_filled(a0, w / 2.0, color);
+        p.circle_filled(a1, w / 2.0, color);
+    }
 }
 
 /// The rounded square with the conversation, its newest message at the bottom.
@@ -423,7 +421,7 @@ fn conversation(app: &mut WordApp, ui: &mut egui::Ui, tok: &Tokens, width: f32, 
 fn message(ui: &mut egui::Ui, tok: &Tokens, m: &Message, max: f32) {
     let layout = if m.from_user { Layout::top_down(Align::Max) } else { Layout::top_down(Align::Min) };
     ui.with_layout(layout, |ui| {
-        let fill = if m.from_user { tok.accent.gamma_multiply(0.14) } else { Color32::TRANSPARENT };
+        let fill = if m.from_user { tok.ai_accent.gamma_multiply(0.14) } else { Color32::TRANSPARENT };
         egui::Frame::new().fill(fill).corner_radius(CornerRadius::same(10)).inner_margin(if m.from_user { 8 } else { 0 }).show(ui, |ui| {
             ui.set_max_width(max);
             ui.add(egui::Label::new(egui::RichText::new(&m.text).color(tok.text)).wrap());
@@ -434,7 +432,7 @@ fn message(ui: &mut egui::Ui, tok: &Tokens, m: &Message, max: f32) {
 /// The pending proposal: each edit (old struck through, new text) with Apply and Discard.
 fn proposal(app: &mut WordApp, ui: &mut egui::Ui, tok: &Tokens) {
     let Some(p) = app.session.doc_ai.proposal.clone() else { return };
-    egui::Frame::new().stroke(Stroke::new(1.0, tok.accent)).corner_radius(CornerRadius::same(10)).inner_margin(8).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, tok.ai_accent)).corner_radius(CornerRadius::same(10)).inner_margin(8).show(ui, |ui| {
         ui.label(egui::RichText::new(t("Suggested changes")).strong().color(tok.text));
         if !p.summary.is_empty() {
             ui.label(egui::RichText::new(&p.summary).color(tok.text_dim));
@@ -444,7 +442,7 @@ fn proposal(app: &mut WordApp, ui: &mut egui::Ui, tok: &Tokens) {
                 ui.label(egui::RichText::new(short(&e.old, 160)).strikethrough().color(tok.text_dim));
             }
             if !e.text.is_empty() {
-                ui.label(egui::RichText::new(short(&e.text, 400)).color(tok.accent_text));
+                ui.label(egui::RichText::new(short(&e.text, 400)).color(tok.ai_accent_text));
             }
             ui.add_space(4.0);
         }
@@ -452,7 +450,7 @@ fn proposal(app: &mut WordApp, ui: &mut egui::Ui, tok: &Tokens) {
             ui.label(format!("… +{}", p.edits.len() - 20));
         }
         ui.horizontal(|ui| {
-            let apply = ui.add_sized([120.0, 36.0], egui::Button::new(egui::RichText::new(t("Apply")).color(tok.on_accent)).fill(tok.accent));
+            let apply = ui.add_sized([120.0, 36.0], egui::Button::new(egui::RichText::new(t("Apply")).color(tok.on_ai_accent)).fill(tok.ai_accent));
             let discard = ui.add_sized([120.0, 36.0], egui::Button::new(t("Discard")));
             if apply.clicked() {
                 run_ai(app, "ai.apply");
@@ -485,7 +483,7 @@ fn pill(app: &mut WordApp, ui: &mut egui::Ui, ctx: &egui::Context, tok: &Tokens,
             if let Some(r) = app.chat.reference.clone() {
                 ui.horizontal(|ui| {
                     let label = format!("{} „{}“", t("About:"), short(r.text.trim(), CHIP_CHARS));
-                    ui.label(egui::RichText::new(label).small().color(tok.accent_text));
+                    ui.label(egui::RichText::new(label).small().color(tok.ai_accent_text));
                     // Drawn, not a glyph: the interface fonts may not have one for ✕.
                     let (xr, x) = ui.allocate_exact_size(vec2(32.0, 28.0), Sense::click());
                     let c = xr.center();
@@ -493,7 +491,7 @@ fn pill(app: &mut WordApp, ui: &mut egui::Ui, ctx: &egui::Context, tok: &Tokens,
                     ui.painter().line_segment([c + vec2(-4.0, -4.0), c + vec2(4.0, 4.0)], Stroke::new(1.5, col));
                     ui.painter().line_segment([c + vec2(4.0, -4.0), c + vec2(-4.0, 4.0)], Stroke::new(1.5, col));
                     if x.has_focus() {
-                        ui.painter().rect_stroke(xr, 4.0, Stroke::new(2.0, tok.accent), egui::StrokeKind::Inside);
+                        ui.painter().rect_stroke(xr, 4.0, Stroke::new(2.0, tok.ai_accent), egui::StrokeKind::Inside);
                     }
                     let x = x.on_hover_text(t("Remove reference"));
                     x.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, t("Remove reference")));
@@ -530,13 +528,13 @@ fn pill(app: &mut WordApp, ui: &mut egui::Ui, ctx: &egui::Context, tok: &Tokens,
                     let enabled = !app.chat.input.trim().is_empty() && !app.chat.busy();
                     b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, t("Send")));
                     let b = b.on_hover_text(t("Send (Enter)"));
-                    let fill = if enabled { tok.accent } else { tok.text_disabled };
+                    let fill = if enabled { tok.ai_accent } else { tok.text_disabled };
                     ui.painter().circle_filled(r.center(), send_w / 2.0, fill);
                     let c = r.center();
-                    ui.painter().line_segment([c + vec2(0.0, 7.0), c + vec2(0.0, -7.0)], Stroke::new(2.0, tok.on_accent));
-                    ui.painter().line(vec![c + vec2(-5.0, -2.0), c + vec2(0.0, -7.0), c + vec2(5.0, -2.0)], Stroke::new(2.0, tok.on_accent));
+                    ui.painter().line_segment([c + vec2(0.0, 7.0), c + vec2(0.0, -7.0)], Stroke::new(2.0, tok.on_ai_accent));
+                    ui.painter().line(vec![c + vec2(-5.0, -2.0), c + vec2(0.0, -7.0), c + vec2(5.0, -2.0)], Stroke::new(2.0, tok.on_ai_accent));
                     if b.has_focus() {
-                        ui.painter().circle_stroke(c, send_w / 2.0 + 3.0, Stroke::new(2.0, tok.accent));
+                        ui.painter().circle_stroke(c, send_w / 2.0 + 3.0, Stroke::new(2.0, tok.ai_accent));
                     }
                     if (b.clicked() || enter) && enabled {
                         send(app, ctx);
@@ -566,14 +564,14 @@ pub fn paint_doc(app: &WordApp, painter: &egui::Painter, layout: &wordcraft_engi
         && let Some(r) = &app.chat.reference
     {
         for sr in spans(&r.anchor, &r.focus) {
-            painter.rect_filled(sr, 2.0, tok.accent.gamma_multiply(0.12));
-            painter.hline(sr.x_range(), sr.max.y - 0.5, Stroke::new(1.5, tok.accent.gamma_multiply(0.7)));
+            painter.rect_filled(sr, 2.0, tok.ai_accent.gamma_multiply(0.12));
+            painter.hline(sr.x_range(), sr.max.y - 0.5, Stroke::new(1.5, tok.ai_accent.gamma_multiply(0.7)));
         }
     }
     if let Some(p) = &app.session.doc_ai.proposal {
         for e in &p.edits {
             for sr in spans(&e.anchor, &e.focus) {
-                painter.rect_filled(sr, 2.0, tok.accent.gamma_multiply(0.10));
+                painter.rect_filled(sr, 2.0, tok.ai_accent.gamma_multiply(0.10));
                 painter.hline(sr.x_range(), sr.center().y, Stroke::new(1.0, tok.text_dim));
             }
         }
@@ -602,7 +600,7 @@ pub fn paint_doc(app: &WordApp, painter: &egui::Painter, layout: &wordcraft_engi
         // The glow: strongest at once, gone after GLOW_SECS.
         let glow = (1.0 - (age / GLOW_SECS)).clamp(0.0, 1.0) as f32;
         for sr in &shown {
-            painter.rect_filled(sr.expand(1.5), 3.0, tok.accent.gamma_multiply(0.28 * glow));
+            painter.rect_filled(sr.expand(1.5), 3.0, tok.ai_accent.gamma_multiply(0.28 * glow));
         }
         if !motion {
             continue;
