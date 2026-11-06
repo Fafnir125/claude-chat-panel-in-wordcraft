@@ -126,14 +126,6 @@ impl eframe::App for App {
     }
 }
 
-/// Quit the way Command-Q does, on the next turn of the main queue.
-///
-/// Called when the window is closing. Doing it on the next turn lets the close
-/// button's display cycle finish while the window still exists; `terminate:`
-/// then ends the process. Preferences are written and the control key file is
-/// removed first, as `on_exit` does, because a fallback [`std::process::exit`]
-/// skips `on_exit`. A second close while a quit is already scheduled is ignored.
-#[cfg(target_os = "macos")]
 /// A control key file removed when the app (and with it the chat's on-demand channel) goes.
 struct RemoveOnDrop(control_server::KeyFile);
 
@@ -143,6 +135,14 @@ impl Drop for RemoveOnDrop {
     }
 }
 
+/// Quit the way Command-Q does, on the next turn of the main queue.
+///
+/// Called when the window is closing. Doing it on the next turn lets the close
+/// button's display cycle finish while the window still exists; `terminate:`
+/// then ends the process. Preferences are written and the control key file is
+/// removed first, as `on_exit` does, because a fallback [`std::process::exit`]
+/// skips `on_exit`. A second close while a quit is already scheduled is ignored.
+#[cfg(target_os = "macos")]
 fn schedule_macos_terminate(app: &mut WordApp, key_file: Option<&control_server::KeyFile>) {
     use std::sync::atomic::{AtomicBool, Ordering};
     if app.printing.busy() {
